@@ -12,10 +12,10 @@ import Data.Functor.Const
 import Data.Functor.Identity
 import Data.Functor.Product
 import Data.Functor.Sum
-import Data.HashMap.Lazy
-import Data.IntMap
+import Data.HashMap.Lazy as HashMap
+import Data.IntMap as IntMap
 import Data.List.NonEmpty
-import Data.Map
+import Data.Map as Map
 import Data.Proxy
 import Data.Sequence
 import Data.Vector (Vector)
@@ -54,12 +54,18 @@ instance FunctorWithIndex k ((,) k) where
   {-# INLINE imap #-}
 
 -- | The position in the list is available as the index.
-instance FunctorWithIndex Int []
+instance FunctorWithIndex Int [] where
+  imap f = go 0 where
+    go i (a:as) = f i a : go (succ i) as
+    go _ [] = []
 
 -- | Same instance as for @[]@.
-instance FunctorWithIndex Int ZipList
+instance FunctorWithIndex Int ZipList where
+  imap f = ZipList . imap f . getZipList
 
-instance FunctorWithIndex Int NonEmpty
+instance FunctorWithIndex Int NonEmpty where
+  imap f = go 0 where
+    go i (a :| as) = f i a :| imap f as
 
 instance FunctorWithIndex () Maybe where
   imap f = fmap (f ())
@@ -73,11 +79,14 @@ instance FunctorWithIndex Int Vector where
   imap = V.imap
   {-# INLINE imap #-}
 
-instance FunctorWithIndex Int IntMap
+instance FunctorWithIndex Int IntMap where
+  imap = IntMap.mapWithKey
 
-instance FunctorWithIndex k (Map k)
+instance FunctorWithIndex k (Map k) where
+  imap = Map.mapWithKey
 
-instance FunctorWithIndex k (HashMap k)
+instance FunctorWithIndex k (HashMap k) where
+  imap = HashMap.mapWithKey
 
 instance FunctorWithIndex r ((->) r) where
   imap f g x = f x (g x)
